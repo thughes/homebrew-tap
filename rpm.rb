@@ -51,9 +51,9 @@ index 19f8f9f..1f15313 100644
  
 -    if (fd == NULL || Ferror(fd)) {
 +    if (fd == NULL) {
-       rpmlog(RPMLOG_ERR, _("open of %s failed: %s\n"), fn, Fstrerror(fd));
-       if (fd != NULL) (void) Fclose(fd);
-       fd = NULL;
+ 	rpmlog(RPMLOG_ERR, _("open of %s failed: %s\n"), fn, Fstrerror(fd));
+ 	if (fd != NULL) (void) Fclose(fd);
+ 	fd = NULL;
 diff --git a/misc/glob.c b/misc/glob.c
 index 3bebe9e..921b8c0 100644
 --- a/misc/glob.c
@@ -78,42 +78,42 @@ index ed3051e..75b4f5d 100644
      int rc;
      FD_t gzdi;
      
--    setprogname(argv[0]);     /* Retrofit glibc __progname */
-+    xsetprogname(argv[0]);    /* Retrofit glibc __progname */
+-    setprogname(argv[0]);	/* Retrofit glibc __progname */
++    xsetprogname(argv[0]);	/* Retrofit glibc __progname */
      rpmReadConfigFiles(NULL, NULL);
      if (argc == 1)
-       fdi = fdDup(STDIN_FILENO);
+ 	fdi = fdDup(STDIN_FILENO);
 diff --git a/rpmio/rpmio.c b/rpmio/rpmio.c
 index 2fbbf91..30f7685 100644
 --- a/rpmio/rpmio.c
 +++ b/rpmio/rpmio.c
 @@ -1455,12 +1455,13 @@ int Fclose(FD_t fd)
-       
-       if (fps->io == fpio) {
-           FILE *fp;
--          int fpno;
-+          int fpno = -1;
+ 	
+ 	if (fps->io == fpio) {
+ 	    FILE *fp;
+-	    int fpno;
++	    int fpno = -1;
  
-           fp = fdGetFILE(fd);
--          fpno = fileno(fp);
--          if (fp)
-+          if (fp) {
-+              fpno = fileno(fp);
-               rc = fclose(fp);
+ 	    fp = fdGetFILE(fd);
+-	    fpno = fileno(fp);
+-	    if (fp)
++	    if (fp) {
++	        fpno = fileno(fp);
+ 	    	rc = fclose(fp);
 +            }
-           if (fpno == -1) {
-               fd = fdFree(fd);
-               fdPop(fd);
+ 	    if (fpno == -1) {
+ 	    	fd = fdFree(fd);
+ 	    	fdPop(fd);
 @@ -1758,7 +1759,8 @@ int Ferror(FD_t fd)
-       int ec;
-       
-       if (fps->io == fpio) {
--          ec = ferror(fdGetFILE(fd));
+ 	int ec;
+ 	
+ 	if (fps->io == fpio) {
+-	    ec = ferror(fdGetFILE(fd));
 +            FILE *fs = fdGetFILE(fd);
-+          ec = fs ? ferror(fs) : -1;
-       } else if (fps->io == gzdio) {
-           ec = (fd->syserrno || fd->errcookie != NULL) ? -1 : 0;
-           i--;        /* XXX fdio under gzdio always has fdno == -1 */
++	    ec = fs ? ferror(fs) : -1;
+ 	} else if (fps->io == gzdio) {
+ 	    ec = (fd->syserrno || fd->errcookie != NULL) ? -1 : 0;
+ 	    i--;	/* XXX fdio under gzdio always has fdno == -1 */
 diff --git a/rpmqv.c b/rpmqv.c
 index 989e95a..f69adf3 100644
 --- a/rpmqv.c
@@ -121,10 +121,10 @@ index 989e95a..f69adf3 100644
 @@ -92,8 +92,8 @@ int main(int argc, char *argv[])
  
      /* Set the major mode based on argv[0] */
- #ifdef        IAM_RPMQV
--    if (rstreq(__progname, "rpmquery"))       bigMode = MODE_QUERY;
+ #ifdef	IAM_RPMQV
+-    if (rstreq(__progname, "rpmquery"))	bigMode = MODE_QUERY;
 -    if (rstreq(__progname, "rpmverify")) bigMode = MODE_VERIFY;
-+    if (rstreq(__progname ? __progname : "", "rpmquery"))     bigMode = MODE_QUERY;
++    if (rstreq(__progname ? __progname : "", "rpmquery"))	bigMode = MODE_QUERY;
 +    if (rstreq(__progname ? __progname : "", "rpmverify")) bigMode = MODE_VERIFY;
  #endif
  
@@ -141,16 +141,16 @@ index 9b23e45..2f3378d 100644
  #else
  extern char ** environ;
  #endif /* __APPLE__ */
-@@ -113,10 +114,10 @@ typedef  char * security_context_t;
+@@ -113,10 +114,10 @@ typedef	char * security_context_t;
  #if __GLIBC_MINOR__ >= 1
- #define       __progname      __assert_program_name
+ #define	__progname	__assert_program_name
  #endif
--#define       setprogname(pn)
-+#define       xsetprogname(pn) setprogname((pn))
+-#define	setprogname(pn)
++#define	xsetprogname(pn) setprogname((pn))
  #else
- #define       __progname      program_name
--#define       setprogname(pn) \
-+#define       xsetprogname(pn)        \
+ #define	__progname	program_name
+-#define	setprogname(pn)	\
++#define	xsetprogname(pn)	\
    { if ((__progname = strrchr(pn, '/')) != NULL) __progname++; \
-     else __progname = pn;             \
+     else __progname = pn;		\
    }
